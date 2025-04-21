@@ -53,7 +53,6 @@ function soa:new (...)
     local instance = {
         __order = {},
         __lookup = {},
-        __views = {},
     }
     local length = select("#", ...)
 
