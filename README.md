@@ -43,8 +43,9 @@ end
 ...Or we can use the `:iterate` method in a for-in loop.
 
 ```lua
+-- this does the same as above
 for i, name, score in scoreboard:iterate() do
-    scoreboard.score[i] = score + 50
+    print(name, score)
 end
 ```
 
