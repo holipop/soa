@@ -176,11 +176,23 @@ end
 ---The order of the keys are alphabetical.
 ---
 ---This can also be called on an instance to append it.
+---
+---For both constructing and appending, you can also pass in a variable amount of tables instead of an array.
+---
 ---```lua
+---local scores = soa:from({
+---    { name = "Alice", score = 230 },
+---    { name = "Bobby", score = 132, foo = true }, -- "foo" is ignored
+---})
+---
+---scores:from(
+---    { name = "Derek", score = 500 },
+---    { name = "Erins", score = 210 }
+---)
 ---```
 ---@param ... table
 ---@return soa
----@overload fun(aos: table[]): soa
+---@overload fun(aos: table[]): soa 
 function soa:from (...)
     if #(select(1, ...)) > 0 then
         local aos = (select(1, ...))
@@ -284,58 +296,6 @@ function soa:pop (...)
     return ...
 end
 
----Sorts each array by a specified array and comparison function. 
----If no comparison function is given, the specified array is sorted in ascending order.
----```lua
----local points = soa:build("name", "score")
----    ("Alice", 230)
----    ("Bobby", 500)
----    ("Carry", 132)
----()
----points:sort("score")
----for i, name, score in scores:iterate() do
----    print(name, score)
----    -- "Carry", 132
----    -- "Alice", 230
----    -- "Bobby", 500
----end
----```
----@param key string
----@param comp? fun(a, b): number
----@param left? integer
----@param right? integer
-function soa:sort (key, comp, left, right)
-    local list = self[key]
-    assert(list, string.format("array named \"%s\" does not exist", key))
-    assert(type(list) == "table", string.format("\"%s\" is not an array", key))
-
-    comp = comp or function (a, b)
-        return a - b
-    end
-
-    left = left or 1
-    right = right or #list
-
-    if left < right then
-        local query = list[right]
-        local i = left - 1
-
-        for j = left, right - 1 do
-            if comp(query, list[j]) >= 0 then
-                i = i + 1
-                self:swap(i, j)
-            end
-        end
-
-        self:swap(i + 1, right)
-
-        local p = i + 1
-        
-		self:sort(key, comp, left, p - 1)
-		self:sort(key, comp, p + 1, right)
-    end
-end
-
 ---Swaps the values of two indexes for each array.
 ---@param a integer
 ---@param b integer
@@ -419,17 +379,23 @@ function soa:iterate ()
     end
 end
 
----Creates a "view" of an entry, an immutable empty table which changes the values in the struct-of-arrays.
+---Creates a "view" of an entry, an immutable empty table which references an entry in the struct-of-arrays. 
+---If no index is given, it returns a view for index 1.
 ---
----This differs from `soa:construct` which contains copies the values and doesn't mutate any values in this struct-of-arrays.
+---You can change the index the view is referencing by calling it and passing an index.
 ---```lua
 ---local scores = soa:new("name", "score")
 ---scores:write(1, "Alice", 230)
 ---
----local alice = scores:view(1)
----alice.score = alice.score + 50
+---local view = scores:view(1)
+---view.score = view.score + 50
 ---
----print(scores.read(1)) -- "Alice", 280
+---view(2)
+---view.name = "Bobby"
+---view.score = 400
+---
+---print(scores:read(1)) -- "Alice", 280
+---print(scores:read(2)) -- "Bobby", 400
 ---```
 ---@param index? integer
 ---@return table
@@ -451,12 +417,72 @@ function soa:view (index)
     return setmetatable({}, metatable)
 end
 
----Returns an iterator function, intended for a for-in loop. 
----The iterator returns the same view in memory, incrementing its index on each loop.
+local function soa_qsort_views (self, comp, left, right, a, b)
+    if left < right then
+        a(right)
+        local i = left - 1
+
+        for j = left, right - 1 do
+            b(j)
+            if comp(a, b) >= 0 then
+                i = i + 1
+                self:swap(i, j)
+            end
+        end
+
+        self:swap(i + 1, right)
+
+        local p = i + 1
+
+		soa_qsort_views(self, comp, left, p - 1, a, b)
+		soa_qsort_views(self, comp, p + 1, right, a, b)
+    end
+
+end
+
+---Sorts each array by a comparison function, 
+---behaving similarly to using `table.sort` on an array-of-structs.
+---
+---The comparison function given must have two parameters for two views and must return a number,
+---where a negative number puts `a` before `b` and a positive number puts `b` after `a`.
 ---```lua
----for i, entry in scores:scan() do
+---local points = soa:build("name", "score")
+---    ("Alice", 230)
+---    ("Bobby", 500)
+---    ("Carry", 132)
+---()
+---
+---points:sort(function(a, b)
+---    return a.score - b.score
+---end)
+---
+---for i, name, score in scores:iterate() do
+---    print(name, score)
+---    -- "Carry", 132
+---    -- "Alice", 230
+---    -- "Bobby", 500
+---end
+---@param comp fun(a: table, b: table): number
+function soa:sort (comp)
+    assert(comp, "missing comparison function")
+
+    local a = self:view()
+    local b = self:view()
+    
+    soa_qsort_views(self, comp, 1, #self, a, b)
+end
+
+---Returns an iterator function.
+---This takes in a view that will be incremented until it reaches the end of the struct-of-arrays.
+---Note that the view returned is the same one in memory for each loop.
+---
+---If this is called with no arguments, a view is made automatically starting at 1.
+---```lua
+---local view = scores:view(5) -- for loop will start at i = 5
+---
+---for i, entry in scores:scan(view) do
 ---    entry.score = entry.score + 100
----    print(entry.name, entry.score)
+---    print(entry == view) -- true
 ---end
 ---```
 ---@param view? table
