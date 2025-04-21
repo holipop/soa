@@ -12,7 +12,7 @@ local soa = require("path.to.soa") -- if it's in a subfolder
 
 ## Usage
 
-You can create an empty struct-of-arrays with `soa:new`, with each argument being a key on the instance. The __order of the keys defined is remembered__ for all operations.
+You can create an empty struct-of-arrays with `soa:new`, with each argument being a key on the instance. The __order of the arguments are remembered__ for all operations.
 
 ```lua
 local scoreboard = soa:new("name", "score")
