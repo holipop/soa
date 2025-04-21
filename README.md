@@ -135,11 +135,20 @@ print(scoreboard:read(2)) -- "Ghile", 530
 
 Along with `:read` returning multiple values for an entry, there are a few other ways of retrieving data.
 
-`:construct` creates a table with the data from a specified entry.
+`:construct` creates a table with the data from a specified entry. You can optionally supply a metatable as the second argument.
 
 ```lua
 local entry = scoreboard:construct(1)
 print(entry.name, entry.score) -- "Alice", 400
+
+-- with a metatable
+local alice = scoreboard:construct(1, {
+    __add = function (self, a)
+        self.score = self.score + a
+        return self.score
+    end
+})
+print(alice + 50) -- 450
 ```
 
 `:closure` creates a function that returns the values of specified entry.
