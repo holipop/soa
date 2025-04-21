@@ -2,11 +2,12 @@
 -- by holipop
 
 ---@class soa
----@field __order string[]
+---@field __order string[] A list of strings representing the order of arrays.
+---@field __lookup { [string]: number } A look-up table for the names of arrays and their positions in __order
 local soa = {}
 soa.__index = soa
 
-soa._VERSION = "v1.0"
+soa._VERSION = "v1.1"
 soa._DESCRIPTION = "A convenient struct-of-arrays library for Lua"
 soa._URL = "https://github.com/holipop/soa"
 soa._LICENSE = [[
@@ -50,7 +51,9 @@ end
 ---@return soa
 function soa:new (...)
     local instance = {
-        __order = {}
+        __order = {},
+        __lookup = {},
+        __views = {},
     }
     local length = select("#", ...)
 
@@ -58,13 +61,13 @@ function soa:new (...)
         local key = select(i, ...)
         instance[key] = {}
         instance.__order[i] = key
+        instance.__lookup[key] = i
     end
     
     return setmetatable(instance, self)
 end
 
----@alias soa.builder fun(...): soa.builder | soa.end
----@alias soa.end fun(): soa
+---@alias soa.builder fun(...): soa.builder | soa
 
 ---Constructs a struct of arrays with a chain of function calls, Ending with an empty parameter list.
 ---
@@ -80,7 +83,7 @@ end
 ---()
 ---```
 ---@param ... string?
----@return soa.builder | soa.end
+---@return soa.builder
 function soa:build (...)
     local instance-- = self:new(...)
     if self == soa then
@@ -121,7 +124,8 @@ end
 function soa:from (aos)
     if self == soa then
         local instance = {
-            __order = {}
+            __order = {},
+            __lookup = {},
         }
         for k, _ in pairs(aos[1]) do
             table.insert(instance.__order, k)
@@ -132,6 +136,10 @@ function soa:from (aos)
             end
         end
         table.sort(instance.__order)
+
+        for i, k in ipairs(instance.__order) do
+            instance.__lookup[k] = i
+        end
 
         return setmetatable(instance, self)
     else
@@ -165,8 +173,8 @@ end
 ---returning each value in the same order the arrays were defined.
 ---```lua
 ---local scores = soa:new("name", "score")
----scores:write("Alice", 230)
----scores:write("Bobby", 132)
+---scores:write(1, "Alice", 230)
+---scores:write(2, "Bobby", 132)
 ---
 ---local name, score = scores:read(1) -- "Alice", 230
 ---```
@@ -183,7 +191,7 @@ function soa:read (index, ...)
     return ...
 end
 
----Inserts values at the specified index, almost like `table.insert`.
+---Inserts values at the specified index, similar to `table.insert`.
 ---@param index integer
 ---@param ... any
 function soa:insert (index, ...)
@@ -194,8 +202,8 @@ function soa:insert (index, ...)
     end
 end
 
----Removes values at the specified index and closes gaps, almost like `table.remove`.
----This returns the removed values in the same order as the arrays were defined.
+---Removes values at the specified index and closes gaps, similar to `table.remove`. 
+---Returns the removed values.
 ---@param index integer
 ---@return ...
 function soa:remove (index, ...)
@@ -215,7 +223,7 @@ function soa:push (...)
     self:write(#self, ...)
 end
 
----Removes values from the end of each array, returning them in the order the arrays were defined.
+---Removes and returns values from the end of each array.
 ---@return ...
 function soa:pop (...)
     local i = select("#", ...)
@@ -230,7 +238,7 @@ function soa:pop (...)
     return ...
 end
 
----Sorts every array by a specified name of an array. 
+---Sorts each array by a specified array and comparison function. 
 ---If no comparison function is given, the specified array is sorted in ascending order.
 ---```lua
 ---local points = soa:build("name", "score")
@@ -248,6 +256,8 @@ end
 ---```
 ---@param key string
 ---@param comp? fun(a, b): number
+---@param left? integer
+---@param right? integer
 function soa:sort (key, comp, left, right)
     local list = self[key]
     assert(list, string.format("array named \"%s\" does not exist", key))
@@ -293,8 +303,7 @@ end
 ---Creates a table based on the values at a specified index.
 ---```lua
 ---local scores = soa:new("name", "score")
----scores:write("Alice", 230)
----scores:write("Bobby", 132)
+---scores:write(1, "Alice", 230)
 ---
 ---local alice = scores:construct(1) 
 ---print(alice.name, alice.score) -- "Alice", 230
@@ -315,19 +324,24 @@ function soa:construct (index, metatable)
 end
 
 ---Creates a function that returns the values from a specified index.
+---The closure can optionally take a name of an array and return just that value.
 ---```lua
 ---local scores = soa:new("name", "score")
----scores:write("Alice", 230)
----scores:write("Bobby", 132)
+---scores:write(1, "Alice", 230)
 ---
----local bobby = scores:construct(1) 
----print(bobby()) -- "Bobby", 132
+---local alice = scores:closure(1) 
+---print(alice()) -- "Alice", 230
+---print(alice("score")) -- 230
 ---```
 ---@param index integer
 ---@return function
 function soa:closure (index, ...)
-    return function ()
-        return self:read(index)
+    return function (key)
+        if key then
+            return (select(self.__lookup[key], self:read(index)))
+        else
+            return self:read(index)
+        end
     end
 end
 
@@ -341,21 +355,88 @@ function soa:aos ()
     return aos
 end
 
----Returns an iterator function, intended to be used in a for-loop.
+---Returns an iterator function, intended for a for-in loop with each entry unpacked.
 ---```lua
----for i, x, y, w, h in rectangles:iterator() do
+---for i, name, score in scores:iterate() do
 ---    print(name, score)
 ---end
 ---```
 ---@return function
 function soa:iterate ()
     local i = 0
-    local length = #self[self.__order[1]]
     
     return function ()
         i = i + 1
-        if i <= length then
+        if i <= #self then
             return i, self:read(i)
+        end
+    end
+end
+
+---Creates a "view" of an entry, an immutable empty table which changes the values in the struct-of-arrays.
+---
+---This differs from `soa:construct` which contains copies the values and doesn't mutate any values in this struct-of-arrays.
+---```lua
+---local scores = soa:new("name", "score")
+---scores:write(1, "Alice", 230)
+---
+---local alice = scores:view(1)
+---alice.score = alice.score + 50
+---
+---print(scores.read(1)) -- "Alice", 280
+---```
+---@param index integer
+---@return table
+function soa:view (index)
+    local metatable = {
+        i = index
+    }
+
+    metatable.__index = function (_, k)
+        return self[k][metatable.i]
+    end
+    metatable.__newindex = function (_, k, v)
+        self[k][metatable.i] = v
+    end
+
+    return setmetatable({}, metatable)
+end
+
+---Shifts a view to a specified index.
+---@param view table
+---@param index integer
+function soa:shift (view, index)
+    local metatable = getmetatable(view)
+    metatable.i = index
+end
+
+---Returns an iterator function, intended for a for-in loop. 
+---The iterator returns the same view in memory, incrementing its index on each loop.
+---```lua
+---for i, entry in scores:scan() do
+---    entry.score = entry.score + 100
+---    print(entry.name, entry.score)
+---end
+---```
+---@return function
+function soa:scan ()
+    local metatable = {
+        i = 0
+    }
+
+    metatable.__index = function (_, k)
+        return self[k][metatable.i]
+    end
+    metatable.__newindex = function (_, k, v)
+        self[k][metatable.i] = v
+    end
+
+    local view = setmetatable({}, metatable)
+
+    return function ()
+        metatable.i = metatable.i + 1
+        if metatable.i <= #self then
+            return metatable.i, view
         end
     end
 end
