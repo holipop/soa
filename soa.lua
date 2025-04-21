@@ -445,6 +445,8 @@ end
 ---
 ---The comparison function given must have two parameters for two views and must return a number,
 ---where a negative number puts `a` before `b` and a positive number puts `b` after `a`.
+---
+---You can optionally supply your own views if you don't want to create garbage.
 ---```lua
 ---local points = soa:build("name", "score")
 ---    ("Alice", 230)
@@ -463,11 +465,13 @@ end
 ---    -- "Bobby", 500
 ---end
 ---@param comp fun(a: table, b: table): number
-function soa:sort (comp)
+---@param a? table
+---@param b? table
+function soa:sort (comp, a, b)
     assert(comp, "missing comparison function")
 
-    local a = self:view()
-    local b = self:view()
+    a = a or self:view()
+    b = b or self:view()
     
     soa_qsort_views(self, comp, 1, #self, a, b)
 end
