@@ -102,53 +102,100 @@ function soa:build (...)
     return step
 end
 
+local function soa_append_from_arr (self, aos)
+    for _, k in ipairs(self.__order) do
+        for i = 1, #aos do
+            self[k][#self[k] + 1] = aos[i][k]
+        end
+    end
+
+    return self
+end
+
+local function soa_create_from_arr (self, aos)
+    local instance = {
+        __order = {},
+        __lookup = {},
+    }
+    for k, _ in pairs(aos[1]) do
+        table.insert(instance.__order, k)
+        instance[k] = {}
+
+        for i = 1, #aos do
+            instance[k][i] = aos[i][k]
+        end
+    end
+    table.sort(instance.__order)
+
+    for i, k in ipairs(instance.__order) do
+        instance.__lookup[k] = i
+    end
+
+    return setmetatable(instance, self)
+end
+
+local function soa_append_from_varargs(self, ...)
+    local item = (select(1, ...))
+    for _, k in ipairs(self.__order) do
+        self[k][#self[k] + 1] = item[k]
+    end
+
+    if select("#", ...) == 1 then
+        return self
+    else
+        return soa_append_from_varargs(self, select(2, ...))
+    end
+end
+
+local function soa_create_from_varargs(self, ...)
+    local instance = setmetatable({
+        __order = {},
+        __lookup = {},
+    }, self)
+
+    local template = (select(1, ...))
+    for k, v in pairs(template) do
+        instance[k] = { v }
+        table.insert(instance.__order, k)
+    end
+    table.sort(instance.__order)
+
+    for i, k in ipairs(instance.__order) do
+        instance.__lookup[k] = i
+    end
+
+    if select("#", ...) == 1 then
+        return instance
+    else
+        return soa_append_from_varargs(instance, select(2, ...))
+    end
+end
+
 ---Constructs a struct of arrays from an array of structs. 
 ---This function uses the first entry as a template and assumes every proceeding entry contains the same keys as the first.
 ---The order of the keys are alphabetical.
 ---
 ---This can also be called on an instance to append it.
 ---```lua
----local scores = soa:from({
----    { name = "Alice", score = 230 },
----    { name = "Bobby", score = 132 },
----    { name = "Carry", score = 500, valid = true }, -- "banned" will be disregarded
----})
----
----scores:from({
----    { name = "Derek", score = 500 }
----})
 ---```
----@param aos table[]
+---@param ... table
 ---@return soa
-function soa:from (aos)
-    if self == soa then
-        local instance = {
-            __order = {},
-            __lookup = {},
-        }
-        for k, _ in pairs(aos[1]) do
-            table.insert(instance.__order, k)
-            instance[k] = {}
+---@overload fun(aos: table[]): soa
+function soa:from (...)
+    if #(select(1, ...)) > 0 then
+        local aos = (select(1, ...))
 
-            for i = 1, #aos do
-                instance[k][i] = aos[i][k]
-            end
+        if self == soa then
+            return soa_create_from_arr(self, aos)
+        else
+            return soa_append_from_arr(self, aos)
         end
-        table.sort(instance.__order)
-
-        for i, k in ipairs(instance.__order) do
-            instance.__lookup[k] = i
-        end
-
-        return setmetatable(instance, self)
     else
-        for _, k in ipairs(self.__order) do
-            for i = 1, #aos do
-                self[k][#self[k] + 1] = aos[i][k]
-            end
+        if self == soa then
+            return soa_create_from_varargs(self, ...)
+        else
+            return soa_append_from_varargs(self, ...)
         end
-
-        return self
     end
 end
 
@@ -384,11 +431,11 @@ end
 ---
 ---print(scores.read(1)) -- "Alice", 280
 ---```
----@param index integer
+---@param index? integer
 ---@return table
 function soa:view (index)
     local metatable = {
-        i = index
+        i = index or 1
     }
 
     metatable.__index = function (_, k)
@@ -397,16 +444,11 @@ function soa:view (index)
     metatable.__newindex = function (_, k, v)
         self[k][metatable.i] = v
     end
+    metatable.__call = function (_, v)
+        metatable.i = v
+    end
 
     return setmetatable({}, metatable)
-end
-
----Shifts a view to a specified index.
----@param view table
----@param index integer
-function soa:shift (view, index)
-    local metatable = getmetatable(view)
-    metatable.i = index
 end
 
 ---Returns an iterator function, intended for a for-in loop. 
@@ -417,20 +459,13 @@ end
 ---    print(entry.name, entry.score)
 ---end
 ---```
+---@param view? table
 ---@return function
-function soa:scan ()
-    local metatable = {
-        i = 0
-    }
+function soa:scan (view)
+    view = view or self:view()
 
-    metatable.__index = function (_, k)
-        return self[k][metatable.i]
-    end
-    metatable.__newindex = function (_, k, v)
-        self[k][metatable.i] = v
-    end
-
-    local view = setmetatable({}, metatable)
+    local metatable = getmetatable(view)
+    metatable.i = metatable.i - 1
 
     return function ()
         metatable.i = metatable.i + 1
