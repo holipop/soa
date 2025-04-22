@@ -229,11 +229,10 @@ However, we can use `:scan` as a much more convenient way to iterate in a for-in
 If you don't pass a view into `:scan`, it creates one automatically starting at 1.
 
 ```lua
-local view = scoreboard:view(3) -- starts the for loop at index 3
+local view = scoreboard:view(2) -- starts the for loop at index 2
 
 for i, entry in scoreboard:scan(view) do
     print(entry.name)
-    -- "Alice"
     -- "Bobby"
     -- "Carry"
     
