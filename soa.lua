@@ -4,6 +4,7 @@
 ---@class soa
 ---@field __order string[] A list of strings representing the order of arrays.
 ---@field __lookup { [string]: number } A look-up table for the names of arrays and their positions in __order
+---@field __build soa.builder The function used for `:build` binded to this instance.
 local soa = {}
 soa.__index = soa
 
@@ -46,6 +47,18 @@ end
 
 ---- new ----
 
+local function soa_create_builder (self)
+    local function step (...)
+        if select("#", ...) == 0 then
+            return self
+        end
+        self:write(#self + 1, ...)
+        return step
+    end
+
+    return step
+end
+
 ---Creates a struct of arrays, each parameter being the name of an array.
 ---The order of the arrays is remembered.
 ---```lua
@@ -58,6 +71,8 @@ function soa:new (...)
         __order = {},
         __lookup = {},
     }
+    instance.__build = soa_create_builder(instance)
+
     local length = select("#", ...)
 
     for i = 1, length do
@@ -98,15 +113,7 @@ function soa:build (...)
         instance = self
     end
 
-    local function step (...)
-        if select("#", ...) == 0 then
-            return instance
-        end
-        instance:write(#instance + 1, ...)
-        return step
-    end
-
-    return step
+    return instance.__build
 end
 
 
@@ -127,6 +134,8 @@ local function soa_create_from_arr (self, aos)
         __order = {},
         __lookup = {},
     }
+    instance.__build = soa_create_builder(instance)
+
     for k, _ in pairs(aos[1]) do
         table.insert(instance.__order, k)
         instance[k] = {}
@@ -162,6 +171,7 @@ local function soa_create_from_varargs(self, ...)
         __order = {},
         __lookup = {},
     }, self)
+    instance.__build = soa_create_builder(instance)
 
     local template = (select(1, ...))
     for k, v in pairs(template) do
