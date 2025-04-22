@@ -171,6 +171,8 @@ local aos = scoreboard:aos()
 
 for i, entry in ipairs(aos) do
     print(entry.name, entry.score)
+    -- "Alice", 400
+    -- "Bobby", 230
 end
 ```
 
@@ -214,6 +216,9 @@ local entry = scoreboard:view()
 for i = 1, #scoreboard do
     entry(i)
     print(entry.name)
+    -- "Alice"
+    -- "Bobby"
+    -- "Carry"
 end
 ```
 
@@ -228,6 +233,10 @@ local view = scoreboard:view(3) -- starts the for loop at index 3
 
 for i, entry in scoreboard:scan(view) do
     print(entry.name)
+    -- "Alice"
+    -- "Bobby"
+    -- "Carry"
+    
     print(view == entry) -- true, these are the same table
 end
 ```
