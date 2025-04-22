@@ -7,7 +7,7 @@
 local soa = {}
 soa.__index = soa
 
-soa._VERSION = "v1.1"
+soa._VERSION = "v1.2"
 soa._DESCRIPTION = "A convenient struct-of-arrays library for Lua"
 soa._URL = "https://github.com/holipop/soa"
 soa._LICENSE = [[

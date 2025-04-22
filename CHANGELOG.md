@@ -4,6 +4,8 @@
 - Calling `:view` without an index returns a view at index 1.
 - A variable amount of tables can be passed into `:from` for instantiating and appending.
 - `:sort` has been changed so it makes use of views.
+- Updated annoations.
+- Updated README.
 
 # v1.1
 - Added `:view`, `:shift`, and `:scan` methods for operations with views

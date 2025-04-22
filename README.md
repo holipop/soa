@@ -75,6 +75,15 @@ local scoreboard = soa:from({
 })
 ```
 
+Additionally, `:from` can take in a variable amount of tables instead of an array-of-structs.
+
+```lua
+local p1 = { x = 3, y = 7 }
+local p2 = { x = 6, y = 2 }
+
+local points = soa:from(p1, p2)
+```
+
 ### Manipulating Data
 
 Along with `:write`, you can use both `:build` and `:from` to append existing instances.
@@ -118,18 +127,6 @@ print(scoreboard:read(2)) -- "Alice", 400
 scoreboard:insert(3, "Clara", 300)
 
 local name, score = scoreboard:remove(4)
-```
-
-`:sort` takes a name of an array and sorts it, rearraging every array so entries don't misalign. If no comparison function is given, the specified array is sorted in ascending order.
-
-```lua
-function descending(a, b)
-    return b - a
-end
-
-scoreboard:sort("score", descending)
-print(scoreboard:read(1)) -- "Derek", 700
-print(scoreboard:read(2)) -- "Ghile", 530
 ```
 
 ### Deriving Data
@@ -185,6 +182,7 @@ A **view** is an *immutable, empty table* that allows you to modify an entry in 
 local scoreboard = soa:build("name", "score")
     ("Alice", 400)
     ("Bobby", 230)
+    ("Carry", 700)
 ()
 
 local entry = scoreboard:view(1)
@@ -201,18 +199,63 @@ scoreboard:swap(1, 2)
 print(entry.name, entry.score) -- "Bobby", 230
 ```
 
-`:shift` changes the index a view is referencing. This means you don't have to create a new view for every index.
+We can change the index a view is referencing by calling it like a function, passing in an index.
 
 ```lua
-scoreboard:shift(entry, 2)
+entry(2)
 print(entry.name, entry.score) -- "Allison", 450
 ```
 
-We can make use of views in a for-in loop with `:scan`. 
->The iterator here returns the same view in memory, it is just shifted every loop by 1.
+With this functionality, we can iterate through a struct-of-arrays easily.
 
 ```lua
-for i, entry in scoreboard:scan() do
-    entry.score = entry.score * 1.5
+local entry = scoreboard:view()
+
+for i = 1, #scoreboard do
+    entry(i)
+    print(entry.name)
 end
 ```
+
+> Note that calling `:view` without any arguments will return a view referencing index 1.
+
+However, we can use `:scan` as a much more convenient way to iterate in a for-in loop. The loop starts at the index of the view and increments by one.
+
+If you don't pass a view into `:scan`, it creates one automatically starting at 1.
+
+```lua
+local view = scoreboard:view(3) -- starts the for loop at index 3
+
+for i, entry in scoreboard:scan(view) do
+    print(entry.name)
+    print(view == entry) -- true, these are the same table
+end
+```
+
+> Note that the view returned is the same as the one supplied.
+
+`:sort` utilizies views to make comparison between values intuitive, similar to `table.sort`. It takes a comparison function which takes in two views and must return a number.
+
+```lua
+function descending(a, b)
+    return b.score - a.score
+end
+
+scoreboard:sort(descending)
+
+for i, entry in scoreboard:scan() do
+    print(entry.name, entry.score)
+    -- "Carry", 700
+    -- "Alice", 400
+    -- "Bobby", 230
+end
+```
+
+> If you don't want to create garbage, you can pass in your own views.
+> 
+> ```lua
+> local a = scoreboard:view()
+> local b = scoreboard:view()
+>
+> scoreboard:sort(descending, a, b)
+> ```
