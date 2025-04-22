@@ -435,16 +435,22 @@ end
 
 ---- view ----
 
+local soa_view__i = -1
+local soa_view__self = -2
+
 local function soa_view_mt__index (t, k)
-    return rawget(t, "self")[k][rawget(t, "i")]
+    return t[soa_view__self][k][t[soa_view__i]]
 end
 
 local function soa_view_mt__newindex (t, k, v)
-    rawget(t, "self")[k][rawget(t, "i")] = v
+    t[soa_view__self][k][t[soa_view__i]] = v
 end
 
 local function soa_view_mt__call (t, v)
-    rawset(t, "i", v)
+    if v then
+        t[soa_view__i] = v
+    end
+    return t[soa_view__i]
 end
 
 local soa_view_mt = {
@@ -475,8 +481,8 @@ local soa_view_mt = {
 ---@return table
 function soa:view (index)
     local view = {
-        i = index or 1,
-        self = self,
+        [soa_view__i] = index or 1,
+        [soa_view__self] = self,
     }
 
     return setmetatable(view, soa_view_mt)
@@ -564,14 +570,12 @@ end
 ---@return function
 function soa:scan (view)
     view = view or self:view()
-
-    local metatable = getmetatable(view)
-    metatable.i = metatable.i - 1
+    view(view() - 1)
 
     return function ()
-        metatable.i = metatable.i + 1
-        if metatable.i <= #self then
-            return metatable.i, view
+        local index = view(view() + 1)
+        if index <= #self then
+            return index, view
         end
     end
 end

@@ -4,6 +4,8 @@
 - Calling `:view` without an index returns a view at index 1.
 - A variable amount of tables can be passed into `:from` for instantiating and appending.
 - `:sort` has been changed so it makes use of views.
+- The function used for `:build` is now stored on `.__build` and is bound to the instance so it doesn't get garbage collected.
+- Calling a view returns its index.
 - Updated annoations.
 - Updated README.
 

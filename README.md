@@ -187,9 +187,9 @@ local scoreboard = soa:build("name", "score")
     ("Carry", 700)
 ()
 
-local entry = scoreboard:view(1)
-entry.name = "Allison"
-entry.score = entry.score + 50
+local view = scoreboard:view(1)
+view.name = "Allison"
+view.score = view.score + 50
 
 print(scoreboard:read(1)) -- "Allison", 450
 ```
@@ -200,24 +200,27 @@ In the example above, you can imagine `entry` as a variable that references valu
 
 ```lua
 scoreboard:swap(1, 2)
-print(entry.name, entry.score) -- "Bobby", 230
+print(view.name, view.score) -- "Bobby", 230
 ```
 
-We can change the index a view is referencing by calling it like a function, passing in an index.
+We can change the index a view is referencing by calling it like a function, passing in an index. Calling also returns the index of the view.
 
 ```lua
-entry(2)
-print(entry.name, entry.score) -- "Allison", 450
+view(2)
+print(view.name, view.score) -- "Allison", 450
+
+local index = view()
+print(index)                   -- 2
 ```
 
 With this functionality, we can iterate through a struct-of-arrays easily.
 
 ```lua
-local entry = scoreboard:view()
+local view = scoreboard:view()
 
 for i = 1, #scoreboard do
-    entry(i)
-    print(entry.name)
+    view(i)
+    print(view.name)
     -- "Alice"
     -- "Bobby"
     -- "Carry"
