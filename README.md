@@ -178,7 +178,7 @@ end
 
 ### Views
 
-A **view** is an *immutable, empty table* that allows you to modify an entry in the struct-of-arrays as if it were a normal table. You can create a view via `:view`.
+A **view** allows you to modify an entry in the struct-of-arrays with the syntax of a table. You can create a view via `:view`.
 
 ```lua
 local scoreboard = soa:build("name", "score")
@@ -193,6 +193,8 @@ entry.score = entry.score + 50
 
 print(scoreboard:read(1)) -- "Allison", 450
 ```
+
+> Because views rely on metatables on an empty table to work, `pairs` will not work.
 
 In the example above, you can imagine `entry` as a variable that references values on index `1`. This means that if we swapped values between indexes, the view would still be looking at the same index.
 

@@ -35,12 +35,16 @@ soa._LICENSE = [[
 ]]
 
 
+---- __len ----
 
 ---Returns the length of the first array.
 ---@return integer
 function soa:__len ()
     return #self[self.__order[1]]
 end
+
+
+---- new ----
 
 ---Creates a struct of arrays, each parameter being the name of an array.
 ---The order of the arrays is remembered.
@@ -65,6 +69,9 @@ function soa:new (...)
     
     return setmetatable(instance, self)
 end
+
+
+---- build ----
 
 ---@alias soa.builder fun(...): soa.builder | soa
 
@@ -101,6 +108,9 @@ function soa:build (...)
 
     return step
 end
+
+
+---- from ----
 
 local function soa_append_from_arr (self, aos)
     for _, k in ipairs(self.__order) do
@@ -211,6 +221,9 @@ function soa:from (...)
     end
 end
 
+
+---- write ----
+
 ---Write to each of the arrays at the specified index.
 ---```lua
 ---local scores = soa:new("name", "score")
@@ -226,6 +239,9 @@ function soa:write (index, ...)
         self[k][index] = select(i, ...)
     end
 end
+
+
+---- read ----
 
 ---Reads from each of the arrays at the specified index, 
 ---returning each value in the same order the arrays were defined.
@@ -249,6 +265,9 @@ function soa:read (index, ...)
     return ...
 end
 
+
+---- insert ----
+
 ---Inserts values at the specified index, similar to `table.insert`.
 ---@param index integer
 ---@param ... any
@@ -259,6 +278,9 @@ function soa:insert (index, ...)
         table.insert(self[k], index, item)
     end
 end
+
+
+---- remove ----
 
 ---Removes values at the specified index and closes gaps, similar to `table.remove`. 
 ---Returns the removed values.
@@ -275,11 +297,17 @@ function soa:remove (index, ...)
     return ...
 end
 
+
+---- push ----
+
 ---Writes values to the end of each array.
 ---@param ... any
 function soa:push (...)
     self:write(#self, ...)
 end
+
+
+---- pop ----
 
 ---Removes and returns values from the end of each array.
 ---@return ...
@@ -296,6 +324,9 @@ function soa:pop (...)
     return ...
 end
 
+
+---- swap ----
+
 ---Swaps the values of two indexes for each array.
 ---@param a integer
 ---@param b integer
@@ -305,6 +336,9 @@ function soa:swap (a, b)
         list[a], list[b] = list[b], list[a]
     end
 end
+
+
+---- construct ----
 
 ---Creates a table based on the values at a specified index.
 ---```lua
@@ -329,6 +363,9 @@ function soa:construct (index, metatable)
     end
 end
 
+
+---- closure ----
+
 ---Creates a function that returns the values from a specified index.
 ---The closure can optionally take a name of an array and return just that value.
 ---```lua
@@ -351,6 +388,9 @@ function soa:closure (index, ...)
     end
 end
 
+
+---- aos ----
+
 ---Creates an array of structs.
 ---@return table[]
 function soa:aos ()
@@ -360,6 +400,9 @@ function soa:aos ()
     end
     return aos
 end
+
+
+---- iterate ----
 
 ---Returns an iterator function, intended for a for-in loop with each entry unpacked.
 ---```lua
@@ -378,6 +421,27 @@ function soa:iterate ()
         end
     end
 end
+
+
+---- view ----
+
+local function soa_view_mt__index (t, k)
+    return rawget(t, "self")[k][rawget(t, "i")]
+end
+
+local function soa_view_mt__newindex (t, k, v)
+    rawget(t, "self")[k][rawget(t, "i")] = v
+end
+
+local function soa_view_mt__call (t, v)
+    rawset(t, "i", v)
+end
+
+local soa_view_mt = {
+    __index = soa_view_mt__index,
+    __newindex = soa_view_mt__newindex,
+    __call = soa_view_mt__call,
+}
 
 ---Creates a "view" of an entry, an immutable empty table which references an entry in the struct-of-arrays. 
 ---If no index is given, it returns a view for index 1.
@@ -400,22 +464,16 @@ end
 ---@param index? integer
 ---@return table
 function soa:view (index)
-    local metatable = {
-        i = index or 1
+    local view = {
+        i = index or 1,
+        self = self,
     }
 
-    metatable.__index = function (_, k)
-        return self[k][metatable.i]
-    end
-    metatable.__newindex = function (_, k, v)
-        self[k][metatable.i] = v
-    end
-    metatable.__call = function (_, v)
-        metatable.i = v
-    end
-
-    return setmetatable({}, metatable)
+    return setmetatable(view, soa_view_mt)
 end
+
+
+---- sort ----
 
 local function soa_qsort_views (self, comp, left, right, a, b)
     if left < right then
@@ -475,6 +533,9 @@ function soa:sort (comp, a, b)
     
     soa_qsort_views(self, comp, 1, #self, a, b)
 end
+
+
+---- scan ----
 
 ---Returns an iterator function.
 ---This takes in a view that will be incremented until it reaches the end of the struct-of-arrays.
