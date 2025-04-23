@@ -194,7 +194,7 @@ view.score = view.score + 50
 print(scoreboard:read(1)) -- "Allison", 450
 ```
 
-> Because views rely on metatables on an empty table to work, `pairs` will not work.
+> The way views are implemented means that using a view in `pairs` won't iterate through the entry's values.
 
 In the example above, you can imagine `entry` as a variable that references values on index `1`. This means that if we swapped values between indexes, the view would still be looking at the same index.
 
