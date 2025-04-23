@@ -459,10 +459,11 @@ local soa_view_mt = {
     __call = soa_view_mt__call,
 }
 
----Creates a "view" of an entry, an immutable empty table which references an entry in the struct-of-arrays. 
+---Creates a "view" of an entry which references an entry in the struct-of-arrays with the behavior of a table. 
 ---If no index is given, it returns a view for index 1.
 ---
 ---You can change the index the view is referencing by calling it and passing an index.
+---Calling also returns the index of the view.
 ---```lua
 ---local scores = soa:new("name", "score")
 ---scores:write(1, "Alice", 230)
