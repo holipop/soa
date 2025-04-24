@@ -6,6 +6,7 @@
 - `:sort` has been changed so it makes use of views.
 - The function used for `:build` is now stored on `.__build` and is bound to the instance so it doesn't get garbage collected.
 - Calling a view returns its index.
+- `:push` actually works.
 - Updated annoations.
 - Updated README.
 

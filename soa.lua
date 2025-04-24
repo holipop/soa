@@ -313,7 +313,7 @@ end
 ---Writes values to the end of each array.
 ---@param ... any
 function soa:push (...)
-    self:write(#self, ...)
+    self:write(#self + 1, ...)
 end
 
 
