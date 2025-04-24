@@ -36,7 +36,7 @@ print(name)  -- "Alice"
 print(score) -- 400
 ```
 
-We can get its length directly and iterate through it...
+We can get its length directly and iterate through it... (or use `:size`!)
 
 ```lua
 for i = 1, #scoreboard do

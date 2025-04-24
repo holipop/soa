@@ -36,13 +36,15 @@ soa._LICENSE = [[
 ]]
 
 
----- __len ----
+---- size ----
 
 ---Returns the length of the first array.
 ---@return integer
-function soa:__len ()
+function soa:size ()
     return #self[self.__order[1]]
 end
+
+soa.__len = soa.size
 
 
 ---- new ----
@@ -52,7 +54,7 @@ local function soa_create_builder (self)
         if select("#", ...) == 0 then
             return self
         end
-        self:write(#self + 1, ...)
+        self:write(self:size() + 1, ...)
         return step
     end
 
@@ -313,7 +315,7 @@ end
 ---Writes values to the end of each array.
 ---@param ... any
 function soa:push (...)
-    self:write(#self + 1, ...)
+    self:write(self:size() + 1, ...)
 end
 
 
@@ -405,7 +407,7 @@ end
 ---@return table[]
 function soa:aos ()
     local aos = {}
-    for i = 1, #self do
+    for i = 1, self:size() do
         aos[i] = self:construct(i)
     end
     return aos
@@ -426,7 +428,7 @@ function soa:iterate ()
     
     return function ()
         i = i + 1
-        if i <= #self then
+        if i <= self:size() then
             return i, self:read(i)
         end
     end
@@ -548,7 +550,7 @@ function soa:sort (comp, a, b)
     a = a or self:view()
     b = b or self:view()
     
-    soa_qsort_views(self, comp, 1, #self, a, b)
+    soa_qsort_views(self, comp, 1, self:size(), a, b)
 end
 
 
@@ -575,7 +577,7 @@ function soa:scan (view)
 
     return function ()
         local index = view(view() + 1)
-        if index <= #self then
+        if index <= self:size() then
             return index, view
         end
     end
