@@ -7,6 +7,7 @@
 - The function used for `:build` is now stored on `.__build` and is bound to the instance so it doesn't get garbage collected.
 - Calling a view returns its index.
 - Added `:size` for compatibility with 5.1.
+- Changed the behavior of `:scan` to work with nested for loops.
 - Updated annoations.
 - Updated README.
 

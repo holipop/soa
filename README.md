@@ -229,20 +229,23 @@ end
 
 > Note that calling `:view` without any arguments will return a view referencing index 1.
 
-However, we can use `:scan` as a much more convenient way to iterate in a for-in loop. The loop starts at the index of the view and increments by one.
+However, we can use `:scan` as a much more convenient way to iterate in a for-in loop. When passing a view into `:scan`, it always iterates starting at 1. When the loop is finished, it sets it to 1 again.
 
-If you don't pass a view into `:scan`, it creates one automatically starting at 1.
+If you don't pass a view into `:scan`, it creates one automatically.
 
 ```lua
-local view = scoreboard:view(2) -- starts the for loop at index 2
+local view = scoreboard:view(3)
 
-for i, entry in scoreboard:scan(view) do
+for i, entry in scoreboard:scan() do -- loop always starts at 1
     print(entry.name)
+    -- "Alice"
     -- "Bobby"
     -- "Carry"
     
     print(view == entry) -- true, these are the same table
 end
+
+print(view.name) -- "Alice"
 ```
 
 > Note that the view returned is the same as the one supplied.
