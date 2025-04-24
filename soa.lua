@@ -573,10 +573,11 @@ end
 ---@return function
 function soa:scan (view)
     view = view or self:view()
-    view(view() - 1)
+    local index = view() - 1
 
     return function ()
-        local index = view(view() + 1)
+        index = index + 1
+        view(index)
         if index <= self:size() then
             return index, view
         end
