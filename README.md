@@ -178,6 +178,8 @@ end
 
 ### Views
 
+> !! These are WIP, right now this feature kinda sucks.
+
 A **view** allows you to modify an entry in the struct-of-arrays with the syntax of a table. You can create a view via `:view`.
 
 ```lua
