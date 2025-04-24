@@ -1,1 +1,4 @@
+.vscode/
 test.lua
+conf.lua
+main.lua
