@@ -236,7 +236,7 @@ If you don't pass a view into `:scan`, it creates one automatically.
 ```lua
 local view = scoreboard:view(3)
 
-for i, entry in scoreboard:scan() do -- loop always starts at 1
+for i, entry in scoreboard:scan(view) do -- loop always starts at 1
     print(entry.name)
     -- "Alice"
     -- "Bobby"
