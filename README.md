@@ -178,8 +178,6 @@ end
 
 ### Views
 
-> !! These are WIP, right now this feature kinda sucks.
-
 A **view** allows you to modify an entry in the struct-of-arrays with the syntax of a table. You can create a view via `:view`.
 
 ```lua
@@ -196,7 +194,7 @@ view.score = view.score + 50
 print(scoreboard:read(1)) -- "Allison", 450
 ```
 
-> The way views are implemented means that using a view in `pairs` won't iterate through the entry's values.
+> Views are a proxy table containing some information on how to lookup an entry. Because of this, using views extensively comes with a performance cost and using them in `pairs` will only reveal its index and struct-of-arrays reference.
 
 In the example above, you can imagine `entry` as a variable that references values on index `1`. This means that if we swapped values between indexes, the view would still be looking at the same index.
 
